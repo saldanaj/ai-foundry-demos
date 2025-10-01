@@ -162,13 +162,17 @@ module apim 'modules/apim.bicep' = if (deployAPIM) {
 
 // Cognitive Services User role for APIM to call Language Service
 resource apimLanguageServiceRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployAPIM) {
-  name: guid(languageService.outputs.languageServiceId, apim.outputs.apimPrincipalId, 'CognitiveServicesUser')
+  name: guid(resourceGroup().id, languageServiceName, apimName, 'CognitiveServicesUser')
   scope: resourceGroup()
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908') // Cognitive Services User
-    principalId: deployAPIM ? apim.outputs.apimPrincipalId : ''
+    principalId: apim.outputs.apimPrincipalId
     principalType: 'ServicePrincipal'
   }
+  dependsOn: [
+    languageService
+    apim
+  ]
 }
 
 // ============================================================================
