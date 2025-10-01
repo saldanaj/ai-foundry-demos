@@ -29,6 +29,21 @@
     "apimPublisherEmail": {
       "value": "dev@example.com"
     },
+    "openAIModelDeployments": {
+      "value": [
+        {
+          "name": "gpt-4o",
+          "model": {
+            "name": "gpt-4o",
+            "version": "2024-11-20"
+          },
+          "sku": {
+            "name": "Standard",
+            "capacity": 10
+          }
+        }
+      ]
+    },
     "tags": {
       "value": {
         "Environment": "dev",

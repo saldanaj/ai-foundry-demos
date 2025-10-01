@@ -4,6 +4,7 @@ PII/PHI Detection and Web Grounding Demo
 """
 import sys
 import time
+import json
 from pathlib import Path
 
 import streamlit as st
@@ -12,7 +13,8 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.pii_detector import PIIDetector, PIIDetectionResult
-from src.ai_foundry_client import AIFoundryClient, GroundedResponse
+from src.hybrid_ai_client import HybridAIClient
+from src.ai_foundry_client import GroundedResponse
 from src.utils import (
     setup_logging,
     format_entity_for_display,
@@ -32,6 +34,26 @@ st.set_page_config(
 
 # Initialize logging
 setup_logging()
+
+
+def load_sample_prompts():
+    """Load sample prompts from JSON file"""
+    try:
+        sample_file = Path(__file__).parent.parent / "tests" / "sample_prompts.json"
+        with open(sample_file, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        st.warning(f"Could not load sample prompts: {e}")
+        # Fallback to hardcoded samples
+        return {
+            "safe_prompts": [
+                {"prompt": "What are the latest treatments for diabetes?", "description": "Safe query"},
+                {"prompt": "What are the 2025 AHA guidelines for cardiac arrest?", "description": "Clinical guidelines"}
+            ],
+            "prompts_with_pii": [
+                {"prompt": "Patient John Doe has diabetes. What are the treatments?", "description": "Contains name"}
+            ]
+        }
 
 
 def init_session_state():
@@ -74,14 +96,15 @@ def initialize_clients():
 
     # Initialize AI Foundry Client
     if st.session_state.ai_client is None:
-        with st.spinner("Initializing Azure AI Foundry..."):
-            st.session_state.ai_client = AIFoundryClient(
+        with st.spinner("Initializing Azure AI services..."):
+            st.session_state.ai_client = HybridAIClient(
                 connection_string=settings.azure_ai_foundry_project_connection_string,
                 endpoint=settings.azure_ai_foundry_endpoint,
                 api_key=settings.azure_ai_foundry_api_key,
                 project_name=settings.azure_ai_foundry_project_name,
                 enable_grounding=settings.enable_web_grounding,
-                bing_connection_id=settings.bing_connection_id
+                bing_connection_id=settings.bing_connection_id,
+                agent_id=settings.azure_ai_foundry_agent_id
             )
 
 
@@ -194,19 +217,19 @@ def render_pii_analysis(result: PIIDetectionResult):
             st.markdown(result.redacted_text)
 
 
-def render_grounded_response(response: GroundedResponse):
+def render_grounded_response(response):
     """Render grounded response with citations"""
     st.subheader("💬 Response")
 
     st.markdown(response.answer)
 
-    if response.citations:
+    if hasattr(response, 'citations') and response.citations:
         st.markdown("---")
         st.markdown(create_citation_markdown(response.citations))
-    elif response.grounding_used:
+    elif hasattr(response, 'grounding_used') and response.grounding_used:
         st.info("Web grounding was used, but no specific citations were returned.")
     else:
-        st.info("Response generated without web grounding.")
+        st.info("Response generated from AI model knowledge (no web grounding).")
 
 
 def process_query(prompt: str):
@@ -297,17 +320,64 @@ def main():
     st.subheader("Ask a Healthcare Question")
 
     # Sample prompts
-    with st.expander("💡 Try these sample prompts"):
-        samples = [
-            "What are the latest treatments for diabetes?",
-            "What are the 2025 AHA guidelines for cardiac arrest?",
-            "Are there interactions between metformin and common blood pressure medications?",
-            "What are the current COVID-19 treatment protocols?",
-            "Patient John Doe (MRN 12345) has diabetes. What are the latest treatments?"
-        ]
-        for sample in samples:
-            if st.button(sample, key=f"sample_{hash(sample)}"):
-                st.session_state.current_prompt = sample
+    with st.expander("💡 Try these sample prompts", expanded=True):
+        st.markdown("""
+        **Categories:**
+        - 🟢 **Safe Queries**: No personal information, safe to process
+        - 🔴 **PII/PHI Examples**: Contains personal/health info that will be detected and redacted
+        - 🏥 **Clinical Scenarios**: Real-world medical use cases 
+        - ⚡ **Edge Cases**: Boundary conditions to test detection accuracy
+        """)
+        
+        sample_data = load_sample_prompts()
+        
+        # Create tabs for different categories
+        tab1, tab2, tab3, tab4 = st.tabs(["🟢 Safe Queries", "🔴 PII/PHI Examples", "🏥 Clinical Scenarios", "⚡ Edge Cases"])
+        
+        with tab1:
+            st.markdown("**Safe healthcare queries with no personal information:**")
+            for item in sample_data.get("safe_prompts", []):
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    if st.button(item["prompt"], key=f"safe_{item.get('id', hash(item['prompt']))}", use_container_width=True):
+                        st.session_state.current_prompt = item["prompt"]
+                with col2:
+                    st.caption(item.get("description", ""))
+        
+        with tab2:
+            st.markdown("**Queries containing PII/PHI (will be detected and redacted):**")
+            for item in sample_data.get("prompts_with_pii", []):
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    if st.button(item["prompt"], key=f"pii_{item.get('id', hash(item['prompt']))}", use_container_width=True):
+                        st.session_state.current_prompt = item["prompt"]
+                with col2:
+                    pii_types = item.get("pii_types", [])
+                    if pii_types:
+                        st.caption(f"Contains: {', '.join(pii_types)}")
+                    else:
+                        st.caption(item.get("description", ""))
+        
+        with tab3:
+            st.markdown("**Clinical scenarios and medical guidelines:**")
+            for item in sample_data.get("clinical_scenarios", []):
+                scenario = item.get("scenario", "")
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    if st.button(item["prompt"], key=f"clinical_{item.get('id', hash(item['prompt']))}", use_container_width=True):
+                        st.session_state.current_prompt = item["prompt"]
+                with col2:
+                    st.caption(f"**{scenario}**" if scenario else item.get("description", ""))
+        
+        with tab4:
+            st.markdown("**Edge cases and boundary conditions:**")
+            for item in sample_data.get("edge_cases", []):
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    if st.button(item["prompt"], key=f"edge_{item.get('id', hash(item['prompt']))}", use_container_width=True):
+                        st.session_state.current_prompt = item["prompt"]
+                with col2:
+                    st.caption(item.get("description", ""))
 
     # Input
     prompt = st.text_area(

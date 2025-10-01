@@ -119,25 +119,33 @@ resource aiProject 'Microsoft.MachineLearningServices/workspaces@2024-04-01' = {
 }
 
 // Storage Blob Data Contributor role for Hub
+// Note: Uses resource-level scope to avoid "already exists" errors on redeployment
 resource hubStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, aiHub.id, 'StorageBlobDataContributor')
+  name: guid(storageAccount.id, aiHub.name, 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe') // Storage Blob Data Contributor
     principalId: aiHub.identity.principalId
     principalType: 'ServicePrincipal'
   }
+  dependsOn: [
+    aiHub
+  ]
 }
 
 // Key Vault Administrator role for Hub
+// Note: Uses resource-level scope to avoid "already exists" errors on redeployment
 resource hubKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVault.id, aiHub.id, 'KeyVaultAdministrator')
+  name: guid(keyVault.id, aiHub.name, '00482a5a-887f-4fb3-b025-3e96b0029c9fe')
   scope: keyVault
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b025-3e41c74aba19') // Key Vault Administrator
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483') // Key Vault Administrator
     principalId: aiHub.identity.principalId
     principalType: 'ServicePrincipal'
   }
+  dependsOn: [
+    aiHub
+  ]
 }
 
 // Outputs

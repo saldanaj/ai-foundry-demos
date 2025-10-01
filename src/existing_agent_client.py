@@ -1,20 +1,21 @@
 """
-Azure AI Foundry Agent Service client with Bing Grounding
+AI Foundry client that uses existing agent with Bing grounding
 """
 import logging
 from dataclasses import dataclass
 from typing import Any
+import os
+from dotenv import load_dotenv
 
 from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import (
-    Agent,
-    AgentThread,
     MessageRole,
-    RunStatus,
-    BingGroundingTool
+    RunStatus
 )
 from azure.identity import DefaultAzureCredential
 
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -29,33 +30,30 @@ class GroundedResponse:
     grounding_used: bool
 
 
-class AIFoundryClient:
-    """Client for Azure AI Foundry Agent Service with Bing Grounding"""
+class ExistingAgentClient:
+    """Client for using existing Azure AI Foundry agent with Bing grounding"""
 
     def __init__(
         self,
         connection_string: str | None = None,
-        endpoint: str | None = None,
-        api_key: str | None = None,
-        project_name: str | None = None,
-        enable_grounding: bool = True,
+        agent_id: str | None = None,
         bing_connection_id: str | None = None
     ):
         """
-        Initialize AI Foundry client
+        Initialize client for existing agent
 
         Args:
             connection_string: Azure AI Foundry project connection string
-            endpoint: Alternative - Azure AI Foundry endpoint
-            api_key: Alternative - Azure AI Foundry API key
-            project_name: Alternative - Azure AI Foundry project name
-            enable_grounding: Enable Bing web grounding
-            bing_connection_id: Bing Grounding connection ID (required if enable_grounding=True)
+            agent_id: Existing agent ID from the portal
+            bing_connection_id: Bing Grounding connection ID
         """
-        self.enable_grounding = enable_grounding
-        self.bing_connection_id = bing_connection_id
-
-        # Initialize client based on provided credentials
+        self.agent_id = agent_id or os.getenv('AZURE_AI_FOUNDRY_AGENT_ID')
+        self.bing_connection_id = bing_connection_id or os.getenv('BING_CONNECTION_ID')
+        
+        if not self.agent_id:
+            raise ValueError("Agent ID must be provided or set in AZURE_AI_FOUNDRY_AGENT_ID")
+        
+        # Initialize client based on connection string
         if connection_string:
             # Parse connection string to extract endpoint
             parts = dict(item.split('=', 1) for item in connection_string.split(';') if '=' in item)
@@ -67,88 +65,12 @@ class AIFoundryClient:
                 endpoint=endpoint,
                 credential=DefaultAzureCredential()
             )
-        elif endpoint and api_key and project_name:
-            # Alternative initialization method (if needed)
-            # This depends on the specific SDK version
-            self.project_client = AIProjectClient(
-                credential=DefaultAzureCredential(),
-                endpoint=endpoint
-            )
         else:
-            raise ValueError(
-                "Must provide either connection_string or "
-                "(endpoint, api_key, project_name)"
-            )
+            raise ValueError("Must provide connection_string")
 
-        self.agent: Agent | None = None
-        logger.info(f"AI Foundry client initialized: grounding={enable_grounding}")
+        logger.info(f"ExistingAgentClient initialized: agent_id={self.agent_id}, bing_connection={self.bing_connection_id}")
 
-    def create_agent(
-        self,
-        name: str = "HealthcareAssistant",
-        instructions: str | None = None,
-        model: str = "gpt-4o"
-    ) -> Agent:
-        """
-        Create an agent with Bing grounding capability
-
-        Args:
-            name: Agent name
-            instructions: System instructions for the agent
-            model: Model deployment name to use
-
-        Returns:
-            Created Agent instance
-        """
-        if instructions is None:
-            instructions = """
-You are a knowledgeable healthcare assistant helping users find information about
-medical topics, treatments, and clinical guidelines. You have access to web search
-capabilities to provide up-to-date, evidence-based information.
-
-When answering:
-1. Prioritize recent, authoritative sources (medical journals, health organizations)
-2. Clearly cite your sources
-3. Distinguish between general information and specific medical advice
-4. Remind users to consult healthcare professionals for personal medical decisions
-5. Use clear, accessible language while maintaining medical accuracy
-
-Note: All personally identifiable information has been redacted from user queries
-for privacy protection.
-"""
-
-        tools_definitions = None
-        if self.enable_grounding:
-            # Add Bing Grounding tool with connection ID
-            if self.bing_connection_id:
-                bing = BingGroundingTool(connection_id=self.bing_connection_id)
-                tools_definitions = bing.definitions
-                logger.info(f"Bing Grounding enabled with connection: {self.bing_connection_id}")
-            else:
-                logger.warning("Bing grounding enabled but no connection ID provided. Proceeding without grounding.")
-                # Don't add grounding tool if no connection ID is provided
-
-        try:
-            self.agent = self.project_client.agents.create_agent(
-                model=model,
-                name=name,
-                instructions=instructions,
-                tools=tools_definitions
-            )
-            logger.info(f"Agent created: {self.agent.id}, name={name}")
-            return self.agent
-
-        except Exception as e:
-            logger.error(f"Error creating agent: {str(e)}", exc_info=True)
-            raise
-
-    def get_or_create_agent(self, **kwargs) -> Agent:
-        """Get existing agent or create new one"""
-        if self.agent is None:
-            self.agent = self.create_agent(**kwargs)
-        return self.agent
-
-    def create_thread(self) -> AgentThread:
+    def create_thread(self):
         """Create a new conversation thread"""
         try:
             thread = self.project_client.agents.threads.create()
@@ -165,26 +87,27 @@ for privacy protection.
         agent_id: str | None = None
     ) -> GroundedResponse:
         """
-        Send a query to the agent and get grounded response
+        Send a query to the existing agent and get grounded response
 
         Args:
             prompt: User query (should be redacted if contains PII)
             thread_id: Optional existing thread ID
-            agent_id: Optional specific agent ID
+            agent_id: Optional override for agent ID
 
         Returns:
             GroundedResponse with answer and citations
         """
         try:
-            # Ensure we have an agent
-            if agent_id:
-                agent = self.project_client.agents.get_agent(agent_id)
-            else:
-                agent = self.get_or_create_agent()
-
+            # Use the configured agent ID
+            target_agent_id = agent_id or self.agent_id
+            
             # Create or use existing thread
             if thread_id:
-                thread = self.project_client.agents.threads.get(thread_id)
+                try:
+                    thread = self.project_client.agents.threads.get(thread_id)
+                except:
+                    # If thread doesn't exist, create new one
+                    thread = self.create_thread()
             else:
                 thread = self.create_thread()
 
@@ -199,7 +122,7 @@ for privacy protection.
             # Run the agent
             run = self.project_client.agents.runs.create_and_process(
                 thread_id=thread.id,
-                agent_id=agent.id
+                agent_id=target_agent_id
             )
 
             logger.info(f"Run completed: {run.id}, status={run.status}")
@@ -261,19 +184,6 @@ for privacy protection.
 
         except Exception as e:
             logger.error(f"Error during query: {str(e)}", exc_info=True)
-            raise
-
-    def delete_agent(self, agent_id: str | None = None):
-        """Delete an agent"""
-        try:
-            target_id = agent_id or (self.agent.id if self.agent else None)
-            if target_id:
-                self.project_client.agents.delete_agent(target_id)
-                logger.info(f"Agent deleted: {target_id}")
-                if self.agent and self.agent.id == target_id:
-                    self.agent = None
-        except Exception as e:
-            logger.error(f"Error deleting agent: {str(e)}", exc_info=True)
             raise
 
     def delete_thread(self, thread_id: str):

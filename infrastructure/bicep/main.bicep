@@ -58,6 +58,21 @@ param apimPublisherName string = 'Healthcare Demo'
 @description('Publisher email for APIM (required if deployAPIM is true)')
 param apimPublisherEmail string = 'admin@example.com'
 
+@description('Model deployments for Azure OpenAI')
+param openAIModelDeployments array = [
+  {
+    name: 'gpt-4o'
+    model: {
+      name: 'gpt-4o'
+      version: '2024-11-20'
+    }
+    sku: {
+      name: 'Standard'
+      capacity: 10
+    }
+  }
+]
+
 @description('Tags to apply to all resources')
 param tags object = {
   Environment: environmentName
@@ -70,8 +85,9 @@ param tags object = {
 // ============================================================================
 
 var resourceSuffix = '${baseName}-${environmentName}'
-var languageServiceName = 'lang-${resourceSuffix}'
+var languageServiceName = 'lang-${resourceSuffix}-${take(uniqueString(resourceGroup().id), 6)}'
 var bingSearchName = 'bing-${resourceSuffix}'
+var openAIServiceName = 'oai-${resourceSuffix}-${take(uniqueString(resourceGroup().id), 6)}'
 var aiHubName = 'hub-${resourceSuffix}'
 var aiProjectName = 'project-${resourceSuffix}'
 var storageAccountName = 'st${baseName}${take(uniqueString(resourceGroup().id), 8)}'
@@ -102,6 +118,18 @@ module languageService 'modules/ai-language.bicep' = {
     languageServiceName: languageServiceName
     location: location
     sku: languageServiceSku
+    tags: tags
+  }
+}
+
+// Azure OpenAI Service with GPT-4o model deployment
+module openAIService 'modules/azure-openai.bicep' = {
+  name: 'openai-service-deployment'
+  params: {
+    openAIServiceName: openAIServiceName
+    location: location
+    sku: 'S0'
+    modelDeployments: openAIModelDeployments
     tags: tags
   }
 }
@@ -190,6 +218,19 @@ output languageServiceName string = languageService.outputs.languageServiceName
 @description('Language Service resource ID')
 output languageServiceId string = languageService.outputs.languageServiceId
 
+// Azure OpenAI Service Outputs
+@description('Azure OpenAI Service endpoint')
+output openAIServiceEndpoint string = openAIService.outputs.openAIServiceEndpoint
+
+@description('Azure OpenAI Service name')
+output openAIServiceName string = openAIService.outputs.openAIServiceName
+
+@description('Azure OpenAI Service resource ID')
+output openAIServiceId string = openAIService.outputs.openAIServiceId
+
+@description('Deployed AI models')
+output deployedModels array = openAIService.outputs.deployedModels
+
 // AI Foundry Outputs
 @description('AI Foundry Hub name')
 output aiHubName string = aiFoundry.outputs.aiHubName
@@ -247,6 +288,11 @@ output deploymentSummary object = {
   languageService: {
     name: languageService.outputs.languageServiceName
     endpoint: languageService.outputs.languageServiceEndpoint
+  }
+  openAIService: {
+    name: openAIService.outputs.openAIServiceName
+    endpoint: openAIService.outputs.openAIServiceEndpoint
+    deployedModels: openAIService.outputs.deployedModels
   }
   aiFoundry: {
     hubName: aiFoundry.outputs.aiHubName

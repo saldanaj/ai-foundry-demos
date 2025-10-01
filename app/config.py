@@ -44,6 +44,10 @@ class Settings(BaseSettings):
         None,
         description="Azure AI Foundry project name"
     )
+    azure_ai_foundry_agent_id: str | None = Field(
+        None,
+        description="Pre-created Azure AI Foundry agent ID"
+    )
     bing_connection_id: str | None = Field(
         None,
         description="Bing Grounding connection ID (required for web grounding)"
