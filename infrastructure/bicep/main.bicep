@@ -106,16 +106,18 @@ module languageService 'modules/ai-language.bicep' = {
   }
 }
 
-// Bing Search
-module bingSearch 'modules/bing-search.bicep' = {
-  name: 'bing-search-deployment'
-  params: {
-    bingSearchName: bingSearchName
-    location: 'global'
-    sku: bingSearchSku
-    tags: tags
-  }
-}
+// Bing Search - DISABLED: Old Bing Search v7 API is retired
+// Bing Grounding must be configured manually in AI Foundry portal
+// See: https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/bing-grounding
+// module bingSearch 'modules/bing-search.bicep' = {
+//   name: 'bing-search-deployment'
+//   params: {
+//     bingSearchName: bingSearchName
+//     location: 'global'
+//     sku: bingSearchSku
+//     tags: tags
+//   }
+// }
 
 // Azure AI Foundry (Hub + Project)
 module aiFoundry 'modules/ai-foundry.bicep' = {
@@ -126,13 +128,12 @@ module aiFoundry 'modules/ai-foundry.bicep' = {
     storageAccountName: storageAccountName
     keyVaultName: keyVaultName
     appInsightsName: monitoring.outputs.appInsightsName
-    bingSearchName: bingSearch.outputs.bingSearchName
+    bingSearchName: '' // Bing Search module disabled
     location: location
     tags: tags
   }
   dependsOn: [
     monitoring
-    bingSearch
   ]
 }
 

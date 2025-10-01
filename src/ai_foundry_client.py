@@ -38,7 +38,8 @@ class AIFoundryClient:
         endpoint: str | None = None,
         api_key: str | None = None,
         project_name: str | None = None,
-        enable_grounding: bool = True
+        enable_grounding: bool = True,
+        bing_connection_id: str | None = None
     ):
         """
         Initialize AI Foundry client
@@ -49,8 +50,10 @@ class AIFoundryClient:
             api_key: Alternative - Azure AI Foundry API key
             project_name: Alternative - Azure AI Foundry project name
             enable_grounding: Enable Bing web grounding
+            bing_connection_id: Bing Grounding connection ID (required if enable_grounding=True)
         """
         self.enable_grounding = enable_grounding
+        self.bing_connection_id = bing_connection_id
 
         # Initialize client based on provided credentials
         if connection_string:
@@ -110,8 +113,13 @@ for privacy protection.
 
         tools = []
         if self.enable_grounding:
-            # Add Bing Grounding tool
-            tools.append(BingGroundingTool())
+            # Add Bing Grounding tool with connection ID
+            if self.bing_connection_id:
+                tools.append(BingGroundingTool(connection_id=self.bing_connection_id))
+                logger.info(f"Bing Grounding enabled with connection: {self.bing_connection_id}")
+            else:
+                logger.warning("Bing grounding enabled but no connection ID provided. Grounding may not work.")
+                tools.append(BingGroundingTool())
 
         try:
             self.agent = self.project_client.agents.create_agent(

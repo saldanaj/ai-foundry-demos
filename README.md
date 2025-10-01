@@ -53,13 +53,18 @@ Grounded Response with Citations
 # Script will:
 # 1. Deploy all Azure resources
 # 2. Automatically create .env file with credentials
-# 3. Provide next steps for manual Bing Grounding setup
 ```
 
-Then install dependencies and run:
+Then setup Bing Grounding and run the app:
 
 ```bash
+# Install dependencies
 pip install -r requirements.txt
+
+# Setup Bing Grounding (provides instructions)
+python scripts/setup-bing-grounding.py
+
+# Run the application
 streamlit run app/streamlit_app.py
 ```
 
@@ -313,14 +318,14 @@ See [Infrastructure Deployment Guide](docs/infrastructure-deployment.md) for ful
 |----------|---------|----------|
 | Azure AI Language Service | PII/PHI Detection | ✅ |
 | Azure AI Foundry Hub + Project | AI Agent orchestration | ✅ |
-| Bing Search API | Web grounding | ✅ |
+| Bing Grounding | Web grounding | 🔧 Manual setup required |
 | Storage Account | AI Foundry storage | ✅ |
 | Key Vault | Secrets management | ✅ |
 | Application Insights | Monitoring | ✅ |
 | Log Analytics | Logging | ✅ |
 | Azure API Management | AI Gateway | ✅ |
 
-**Note:** All services use free or low-cost tiers optimized for demos. Total estimated cost: **$10-40/month**.
+**Note:** All services use free or low-cost tiers optimized for demos. Total estimated cost: **$10-40/month** (excluding Bing Grounding, which is pay-per-use).
 
 ### Cleanup
 

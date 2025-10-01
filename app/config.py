@@ -44,6 +44,10 @@ class Settings(BaseSettings):
         None,
         description="Azure AI Foundry project name"
     )
+    bing_connection_id: str | None = Field(
+        None,
+        description="Bing Grounding connection ID (required for web grounding)"
+    )
 
     # Azure API Management (Optional)
     azure_apim_endpoint: str | None = Field(

@@ -80,7 +80,8 @@ def initialize_clients():
                 endpoint=settings.azure_ai_foundry_endpoint,
                 api_key=settings.azure_ai_foundry_api_key,
                 project_name=settings.azure_ai_foundry_project_name,
-                enable_grounding=settings.enable_web_grounding
+                enable_grounding=settings.enable_web_grounding,
+                bing_connection_id=settings.bing_connection_id
             )
 
 

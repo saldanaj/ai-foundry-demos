@@ -159,7 +159,8 @@ resource piiDetectionOperation 'Microsoft.ApiManagement/service/apis/operations@
   }
 }
 
-// Policy for Language Service API with rate limiting and logging
+// Policy for Language Service API with basic logging
+// Note: Consumption tier doesn't support rate-limit-by-key or quota-by-key policies
 resource languageServiceAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
   parent: languageServiceAPI
   name: 'policy'
@@ -168,12 +169,6 @@ resource languageServiceAPIPolicy 'Microsoft.ApiManagement/service/apis/policies
       <policies>
         <inbound>
           <base />
-          <!-- Rate limiting per subscription -->
-          <rate-limit-by-key calls="100" renewal-period="60" counter-key="@(context.Subscription.Id)" />
-
-          <!-- Quota per subscription (daily) -->
-          <quota-by-key calls="10000" renewal-period="86400" counter-key="@(context.Subscription.Id)" />
-
           <!-- Set backend service -->
           <set-backend-service backend-id="language-service-backend" />
 
@@ -182,7 +177,7 @@ resource languageServiceAPIPolicy 'Microsoft.ApiManagement/service/apis/policies
 
           <!-- Add custom headers -->
           <set-header name="X-Request-ID" exists-action="override">
-            <value>@(context.RequestId)</value>
+            <value>@(context.RequestId.ToString())</value>
           </set-header>
         </inbound>
         <backend>
@@ -192,7 +187,7 @@ resource languageServiceAPIPolicy 'Microsoft.ApiManagement/service/apis/policies
           <base />
           <!-- Add response headers for tracking -->
           <set-header name="X-APIM-Request-ID" exists-action="override">
-            <value>@(context.RequestId)</value>
+            <value>@(context.RequestId.ToString())</value>
           </set-header>
         </outbound>
         <on-error>
@@ -209,7 +204,7 @@ resource tokenLimitNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-
   parent: apim
   name: 'ai-token-limit'
   properties: {
-    displayName: 'AI Token Limit (per minute)'
+    displayName: 'AI-Token-Limit-Per-Minute'
     value: '10000'
     secret: false
   }
