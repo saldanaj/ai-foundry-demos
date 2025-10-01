@@ -172,33 +172,69 @@ az cognitiveservices account keys list \
   --query key1 -o tsv
 ```
 
-### Bing Search Key
-
-```bash
-BING_SEARCH_NAME="bing-healthdemo-dev"
-
-az cognitiveservices account keys list \
-  --resource-group $RESOURCE_GROUP \
-  --name $BING_SEARCH_NAME \
-  --query key1 -o tsv
-```
-
 ### APIM Subscription Key (if deployed)
 
 Already included in deployment outputs - check the `apimSubscriptionKey` output.
 
 ## 🎯 Post-Deployment Configuration
 
-### 1. Enable Bing Grounding in AI Foundry
+### 1. Setup Bing Grounding (Required for Web Search)
 
-**This step is required and must be done manually via the portal:**
+**Important:** The old Bing Search v7 API is retired. You must manually set up the new Grounding with Bing Search service.
+
+#### Step 1: Register Bing Provider
+
+```bash
+az provider register --namespace 'Microsoft.Bing'
+```
+
+#### Step 2: Create Bing Grounding Resource
+
+You must create this resource manually in the Azure portal:
+
+1. Navigate to: [Create Bing Grounding](https://portal.azure.com/#create/Microsoft.BingGroundingSearch)
+2. Select the **same resource group** as your AI Foundry project
+3. Choose the **same region** as your project
+4. Name: `bing-grounding-<your-base-name>`
+5. Click **Review + Create**
+
+**Why manual?** The new Bing Grounding resource type doesn't yet have Bicep/ARM template support.
+
+#### Step 3: Create Connection in AI Foundry Portal
 
 1. Navigate to [Azure AI Foundry Portal](https://ai.azure.com)
-2. Select your subscription and project
-3. Go to **Settings** → **Tools**
-4. Enable **Bing Search** tool
-5. Create a connection to the Bing Search resource
-6. Create an agent with Bing Grounding tool enabled
+2. Select your project
+3. Go to **Settings** → **Connections**
+4. Click **+ New connection**
+5. Select **Bing Grounding**
+6. Choose your Bing Grounding resource (created in Step 2)
+7. Name the connection: `bing-grounding`
+8. Click **Add connection**
+
+#### Step 4: Get Connection ID
+
+The connection ID will be in this format:
+```
+/subscriptions/<sub_id>/resourceGroups/<rg_name>/providers/Microsoft.CognitiveServices/accounts/<account_name>/projects/<project_name>/connections/<connection_name>
+```
+
+You can find the connection ID:
+- In AI Foundry portal: Settings → Connections → Click on your connection → Copy the ID
+- Or run the helper script:
+
+```bash
+python scripts/setup-bing-grounding.py
+```
+
+This script will guide you through the setup and help locate the connection ID.
+
+#### Step 5: Add to .env File
+
+Add the connection ID to your `.env` file:
+
+```bash
+BING_CONNECTION_ID=/subscriptions/YOUR-SUB-ID/resourceGroups/YOUR-RG/providers/Microsoft.CognitiveServices/accounts/YOUR-ACCOUNT/projects/YOUR-PROJECT/connections/bing-grounding
+```
 
 ### 2. Configure .env File
 
@@ -218,6 +254,7 @@ Fill in the values from deployment outputs:
 AZURE_LANGUAGE_ENDPOINT=<from deployment output>
 AZURE_LANGUAGE_KEY=<from az cognitiveservices command>
 AZURE_AI_FOUNDRY_PROJECT_CONNECTION_STRING=<from deployment output>
+BING_CONNECTION_ID=<from AI Foundry portal or setup script>
 ```
 
 ## 🧪 Validate Deployment
@@ -351,10 +388,17 @@ APIM can take 30-45 minutes to deploy. This is normal. To avoid:
 
 ### Bing Grounding Not Working
 
-1. Verify Bing Search resource is deployed
-2. Check AI Foundry portal for Bing connection
-3. Ensure agent has Bing Grounding tool enabled
-4. Manually create connection if needed
+1. **Verify resource created:** Check Azure portal for Bing Grounding resource
+2. **Check connection:** Go to AI Foundry portal → Settings → Connections
+3. **Verify connection ID:** Ensure `BING_CONNECTION_ID` is set in `.env`
+4. **Run setup script:** `python scripts/setup-bing-grounding.py` for diagnostics
+5. **Check logs:** Look for Bing Grounding connection warnings in app logs
+
+Common issues:
+- Bing Grounding resource not in same resource group as AI Foundry project
+- Connection not created in AI Foundry portal
+- Connection ID incorrectly formatted in `.env`
+- `enable_web_grounding=False` in configuration
 
 ### Permission Errors
 

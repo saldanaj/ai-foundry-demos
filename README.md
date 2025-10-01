@@ -333,6 +333,97 @@ See [Infrastructure Deployment Guide](docs/infrastructure-deployment.md) for ful
 ./infrastructure/bicep/cleanup.sh
 ```
 
+## 🌐 Bing Grounding Setup (Web Search)
+
+**Important:** Bing Search v7 API was retired by Microsoft. The new **Grounding with Bing Search** resource must be set up separately.
+
+### Why Manual Setup?
+
+Microsoft retired the old Bing Search APIs (August 11, 2025 shutdown) and replaced them with "Grounding with Bing Search" for Azure AI Foundry. This new service:
+- Is NOT deployable via Bicep/ARM templates yet
+- Must be created manually in Azure portal
+- Requires connection setup in AI Foundry portal
+- Provides better integration with AI agents
+
+### Setup Steps
+
+#### 1. Register Bing Provider (One-Time)
+
+```bash
+az provider register --namespace 'Microsoft.Bing'
+```
+
+#### 2. Create Bing Grounding Resource
+
+Navigate to: [Azure Portal - Create Bing Grounding](https://portal.azure.com/#create/Microsoft.BingGroundingSearch)
+
+- **Resource group:** Use the SAME resource group as your AI Foundry project
+- **Region:** Match your AI Foundry project region
+- **Name:** Choose a unique name (e.g., `bing-grounding-demo`)
+
+#### 3. Create Connection in AI Foundry Portal
+
+1. Go to [Azure AI Foundry Portal](https://ai.azure.com)
+2. Navigate to your project
+3. Go to **Settings** → **Connections**
+4. Click **+ New connection**
+5. Select **Bing Grounding**
+6. Choose your Bing Grounding resource
+7. Name the connection (e.g., `bing-grounding`)
+8. Click **Add connection**
+
+#### 4. Get Connection ID
+
+The connection ID format:
+```
+/subscriptions/<subscription_id>/resourceGroups/<resource_group>/
+providers/Microsoft.CognitiveServices/accounts/<account_name>/
+projects/<project_name>/connections/<connection_name>
+```
+
+You can find this in the AI Foundry portal connection details or by running:
+
+```bash
+python scripts/setup-bing-grounding.py
+```
+
+This script will:
+- Verify your AI Foundry project connection
+- Provide detailed setup instructions
+- Help you locate the connection ID
+
+#### 5. Add to .env File
+
+```bash
+BING_CONNECTION_ID=/subscriptions/your-sub-id/resourceGroups/your-rg/providers/Microsoft.CognitiveServices/accounts/your-account/projects/your-project/connections/bing-grounding
+```
+
+### Programmatic Usage
+
+The Python app automatically uses Bing Grounding once configured:
+
+```python
+# In src/ai_foundry_client.py
+client = AIFoundryClient(
+    connection_string=connection_string,
+    enable_grounding=True,
+    bing_connection_id=bing_connection_id  # From .env
+)
+
+# Agent automatically uses Bing Grounding tool
+agent = client.create_agent(
+    name="HealthcareAssistant",
+    instructions="You are a healthcare assistant..."
+)
+```
+
+### Cost
+
+Bing Grounding is **pay-per-use**:
+- No base cost
+- Charged per search query
+- See [Bing Grounding Pricing](https://www.microsoft.com/en-us/bing/apis/grounding-pricing)
+
 ## 🔄 Future Enhancements
 
 - [ ] Add unit and integration tests
@@ -362,9 +453,11 @@ If PII detection isn't working:
 ### Grounding Issues
 
 If web grounding isn't working:
-1. Verify Azure AI Foundry connection string
-2. Ensure Bing Grounding is enabled in your project
-3. Check that the agent was created successfully
+1. Verify `BING_CONNECTION_ID` is set in `.env` file
+2. Ensure Bing Grounding resource is created in Azure portal
+3. Verify connection exists in AI Foundry portal (Settings → Connections)
+4. Check that `enable_grounding=True` in configuration
+5. Run `python scripts/setup-bing-grounding.py` for setup verification
 
 ## 📚 Documentation
 

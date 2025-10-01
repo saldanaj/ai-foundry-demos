@@ -46,7 +46,7 @@ This document provides a detailed technical overview of the Azure AI Foundry Hea
                              │
                              ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                  Bing Search (Web Grounding)                     │
+│           Bing Grounding (Grounding with Bing Search)            │
 │              (Retrieves current web information)                 │
 └─────────────────────────────┬───────────────────────────────────┘
                               │
@@ -212,7 +212,7 @@ agent = client.create_agent(
     medical information via web search. Provide evidence-based
     responses with citations.
     """,
-    tools=[BingGroundingTool()]
+    tools=[BingGroundingTool(connection_id=bing_connection_id)]
 )
 ```
 
@@ -256,10 +256,16 @@ response = client.get_messages(thread.id)
 The Bing Grounding Tool enables agents to:
 1. Determine when web search is needed
 2. Generate search queries from user prompts
-3. Execute Bing searches
+3. Execute Bing searches via Grounding with Bing Search resource
 4. Retrieve relevant web content
 5. Synthesize information into responses
 6. Provide citations to source material
+
+**Important:** Requires a Bing Grounding resource and connection:
+- Bing Search v7 API is retired (August 11, 2025 shutdown)
+- New "Grounding with Bing Search" resource must be created manually in Azure portal
+- Connection must be established in AI Foundry portal (Settings → Connections)
+- Connection ID passed to `BingGroundingTool(connection_id=...)`
 
 **Agent Instructions (System Prompt):**
 
@@ -281,15 +287,28 @@ Note: All PII has been redacted from user queries for privacy.
 
 ---
 
-### 6. Bing Search (Web Grounding)
+### 6. Bing Grounding (Web Search)
 
-**Service:** Bing Search API (via Azure AI Foundry integration)
+**Service:** Grounding with Bing Search (via Azure AI Foundry integration)
+
+**Deployment:**
+- **Resource Type:** Microsoft.Bing/accounts (Grounding with Bing Search)
+- **Setup:** Manual creation in Azure portal (no Bicep/ARM support yet)
+- **Connection:** Created in AI Foundry portal (Settings → Connections)
+- **Integration:** Connection ID passed to BingGroundingTool
 
 **Capabilities:**
 - Real-time web search
 - Healthcare and medical content indexing
 - Relevance ranking
 - Citation extraction
+
+**Setup Process:**
+1. Register Microsoft.Bing provider: `az provider register --namespace 'Microsoft.Bing'`
+2. Create Bing Grounding resource in Azure portal
+3. Create connection in AI Foundry portal
+4. Get connection ID from AI Foundry
+5. Pass connection ID to application via `BING_CONNECTION_ID` environment variable
 
 **Important Compliance Note:**
 
@@ -304,6 +323,11 @@ Note: All PII has been redacted from user queries for privacy.
 - Use Azure AI Search with your own data (enterprise data grounding)
 - Use SharePoint grounding tool (stays within M365 compliance boundary)
 - Disable web grounding entirely for PII-sensitive scenarios
+
+**Migration from Bing Search v7:**
+- Old Bing Search v7 API retired August 11, 2025
+- New Grounding with Bing Search provides better AI agent integration
+- Requires manual resource creation (not yet supported in IaC templates)
 
 ---
 
@@ -541,7 +565,7 @@ User → Streamlit UI → Azure APIM → [Language Service, AI Foundry]
 | **PII Detection** | Azure AI Language | PHI detection and redaction |
 | **AI Agents** | Azure AI Foundry | Agent orchestration |
 | **LLM** | GPT-4/GPT-4o | Natural language understanding |
-| **Grounding** | Bing Search API | Current web information |
+| **Grounding** | Grounding with Bing Search | Current web information |
 | **Config** | Pydantic + dotenv | Settings management |
 | **Auth** | Azure Identity | Service authentication |
 

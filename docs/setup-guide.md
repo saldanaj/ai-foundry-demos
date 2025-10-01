@@ -84,20 +84,7 @@ az cognitiveservices account keys list \
    - Select or create a new hub
    - Choose the same region as your Language Service
 
-3. **Enable Bing Grounding:**
-   - In your project, go to "Settings" → "Tools"
-   - Enable "Bing Search"
-   - This will create a Bing resource connection
-
-4. **Create an Agent:**
-   - Go to "Agents" section
-   - Click "Create agent"
-   - Name: `HealthcareAssistant`
-   - Model: Select GPT-4 or GPT-4o
-   - Tools: Enable "Bing Grounding"
-   - Save the agent
-
-5. **Get Connection String:**
+3. **Get Connection String:**
    - Go to "Settings" → "Connection strings"
    - Copy the project connection string
    - Save as `AZURE_AI_FOUNDRY_PROJECT_CONNECTION_STRING`
@@ -126,9 +113,54 @@ az ml workspace create \
   --location $LOCATION
 ```
 
-**Note:** Bing Grounding must be configured through the portal even if you create the project via CLI.
+**Note:** Bing Grounding must be configured separately (see Step 5 below).
 
-### Step 5: (Optional) Create Azure API Management
+### Step 5: Setup Bing Grounding (Required for Web Search)
+
+**Important:** The old Bing Search v7 API is retired. You must set up the new "Grounding with Bing Search" service.
+
+#### Register Bing Provider
+
+```bash
+az provider register --namespace 'Microsoft.Bing'
+```
+
+#### Create Bing Grounding Resource
+
+Navigate to the Azure Portal: [Create Bing Grounding](https://portal.azure.com/#create/Microsoft.BingGroundingSearch)
+
+1. **Resource group:** Use the SAME resource group as your AI Foundry project
+2. **Region:** Match your AI Foundry project region
+3. **Name:** `bing-grounding-healthcare-demo`
+4. Click **Review + Create**
+
+#### Create Connection in AI Foundry
+
+1. Go to [Azure AI Foundry Portal](https://ai.azure.com)
+2. Navigate to your project
+3. Go to **Settings** → **Connections**
+4. Click **+ New connection**
+5. Select **Bing Grounding**
+6. Choose your Bing Grounding resource
+7. Name: `bing-grounding`
+8. Click **Add connection**
+
+#### Get Connection ID
+
+Find the connection ID in the AI Foundry portal or run:
+
+```bash
+python scripts/setup-bing-grounding.py
+```
+
+The connection ID format:
+```
+/subscriptions/<sub_id>/resourceGroups/<rg_name>/providers/Microsoft.CognitiveServices/accounts/<account_name>/projects/<project_name>/connections/bing-grounding
+```
+
+Save this as `BING_CONNECTION_ID` for later.
+
+### Step 6: (Optional) Create Azure API Management
 
 If you want to use Azure API Management as a gateway:
 
@@ -219,6 +251,9 @@ AZURE_LANGUAGE_KEY=your_key_from_step_3
 
 # Azure AI Foundry
 AZURE_AI_FOUNDRY_PROJECT_CONNECTION_STRING=your_connection_string_from_step_4
+
+# Bing Grounding (required for web search)
+BING_CONNECTION_ID=your_bing_connection_id_from_step_5
 
 # Application Configuration
 PII_DETECTION_MODE=redact
@@ -319,7 +354,8 @@ settings = get_settings()
 # Initialize client
 client = AIFoundryClient(
     connection_string=settings.azure_ai_foundry_project_connection_string,
-    enable_grounding=True
+    enable_grounding=True,
+    bing_connection_id=settings.bing_connection_id
 )
 
 # Create agent
@@ -423,12 +459,15 @@ Failed to initialize services: connection string invalid
 **Symptoms:**
 - Responses generated but no citations
 - `grounding_used: false` in response
+- Warning: "Bing grounding enabled but no connection ID provided"
 
 **Solution:**
-1. In AI Foundry portal, verify Bing Search tool is enabled
-2. Recreate agent with Bing Grounding tool explicitly enabled
-3. Check if Bing resource connection exists in project
-4. Verify Azure subscription has access to Bing Search APIs
+1. Verify `BING_CONNECTION_ID` is set in `.env` file
+2. Ensure Bing Grounding resource is created in Azure portal
+3. Verify connection exists in AI Foundry portal (Settings → Connections)
+4. Run `python scripts/setup-bing-grounding.py` for setup verification
+5. Check that `enable_web_grounding=True` in configuration
+6. Verify connection ID format is correct (starts with `/subscriptions/...`)
 
 ### Issue: Streamlit app won't start
 
