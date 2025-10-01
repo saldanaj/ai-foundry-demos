@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import (
+from azure.ai.agents.models import (
     Agent,
     AgentThread,
     MessageRole,
@@ -111,22 +111,24 @@ Note: All personally identifiable information has been redacted from user querie
 for privacy protection.
 """
 
-        tools = []
+        tools_definitions = None
         if self.enable_grounding:
             # Add Bing Grounding tool with connection ID
             if self.bing_connection_id:
-                tools.append(BingGroundingTool(connection_id=self.bing_connection_id))
+                bing = BingGroundingTool(connection_id=self.bing_connection_id)
+                tools_definitions = bing.definitions
                 logger.info(f"Bing Grounding enabled with connection: {self.bing_connection_id}")
             else:
                 logger.warning("Bing grounding enabled but no connection ID provided. Grounding may not work.")
-                tools.append(BingGroundingTool())
+                bing = BingGroundingTool()
+                tools_definitions = bing.definitions
 
         try:
             self.agent = self.project_client.agents.create_agent(
                 model=model,
                 name=name,
                 instructions=instructions,
-                tools=tools if tools else None
+                tools=tools_definitions
             )
             logger.info(f"Agent created: {self.agent.id}, name={name}")
             return self.agent
@@ -144,7 +146,7 @@ for privacy protection.
     def create_thread(self) -> AgentThread:
         """Create a new conversation thread"""
         try:
-            thread = self.project_client.agents.create_thread()
+            thread = self.project_client.agents.threads.create()
             logger.debug(f"Thread created: {thread.id}")
             return thread
         except Exception as e:
@@ -177,12 +179,12 @@ for privacy protection.
 
             # Create or use existing thread
             if thread_id:
-                thread = self.project_client.agents.get_thread(thread_id)
+                thread = self.project_client.agents.threads.get(thread_id)
             else:
                 thread = self.create_thread()
 
             # Add user message to thread
-            message = self.project_client.agents.create_message(
+            message = self.project_client.agents.messages.create(
                 thread_id=thread.id,
                 role=MessageRole.USER,
                 content=prompt
@@ -190,7 +192,7 @@ for privacy protection.
             logger.debug(f"Message added to thread {thread.id}")
 
             # Run the agent
-            run = self.project_client.agents.create_and_process_run(
+            run = self.project_client.agents.runs.create_and_process(
                 thread_id=thread.id,
                 agent_id=agent.id
             )
@@ -204,7 +206,7 @@ for privacy protection.
                 raise Exception(error_msg)
 
             # Get messages from thread
-            messages = self.project_client.agents.list_messages(thread_id=thread.id)
+            messages = self.project_client.agents.messages.list(thread_id=thread.id)
 
             # Extract the latest assistant message
             assistant_messages = [
@@ -272,7 +274,7 @@ for privacy protection.
     def delete_thread(self, thread_id: str):
         """Delete a thread"""
         try:
-            self.project_client.agents.delete_thread(thread_id)
+            self.project_client.agents.threads.delete(thread_id)
             logger.debug(f"Thread deleted: {thread_id}")
         except Exception as e:
             logger.error(f"Error deleting thread: {str(e)}", exc_info=True)

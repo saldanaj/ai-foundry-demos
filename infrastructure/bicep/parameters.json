@@ -6,16 +6,16 @@
       "value": "dev"
     },
     "baseName": {
-      "value": "healthdemo"
+      "value": "hlth"
     },
     "location": {
       "value": "westus"
     },
     "deployAPIM": {
-      "value": true
+      "value": false
     },
     "languageServiceSku": {
-      "value": "F0"
+      "value": "S"
     },
     "bingSearchSku": {
       "value": "S1"

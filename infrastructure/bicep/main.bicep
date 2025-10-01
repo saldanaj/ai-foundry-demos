@@ -74,8 +74,8 @@ var languageServiceName = 'lang-${resourceSuffix}'
 var bingSearchName = 'bing-${resourceSuffix}'
 var aiHubName = 'hub-${resourceSuffix}'
 var aiProjectName = 'project-${resourceSuffix}'
-var storageAccountName = 'st${replace(resourceSuffix, '-', '')}${uniqueString(resourceGroup().id)}'
-var keyVaultName = 'kv-${resourceSuffix}-${uniqueString(resourceGroup().id)}'
+var storageAccountName = 'st${baseName}${take(uniqueString(resourceGroup().id), 8)}'
+var keyVaultName = 'kv-${baseName}-${take(uniqueString(resourceGroup().id), 8)}'
 var logAnalyticsName = 'log-${resourceSuffix}'
 var appInsightsName = 'appi-${resourceSuffix}'
 var apimName = 'apim-${resourceSuffix}'
@@ -200,12 +200,12 @@ output aiProjectName string = aiFoundry.outputs.aiProjectName
 @description('AI Foundry Project connection string')
 output aiProjectConnectionString string = aiFoundry.outputs.aiProjectConnectionString
 
-// Bing Search Outputs
+// Bing Search Outputs (disabled - APIs retired)
 @description('Bing Search name')
-output bingSearchName string = bingSearch.outputs.bingSearchName
+output bingSearchName string = 'disabled'
 
 @description('Bing Search endpoint')
-output bingSearchEndpoint string = bingSearch.outputs.bingSearchEndpoint
+output bingSearchEndpoint string = 'disabled'
 
 // Monitoring Outputs
 @description('Application Insights instrumentation key')
@@ -254,8 +254,8 @@ output deploymentSummary object = {
     connectionString: aiFoundry.outputs.aiProjectConnectionString
   }
   bingSearch: {
-    name: bingSearch.outputs.bingSearchName
-    endpoint: bingSearch.outputs.bingSearchEndpoint
+    name: 'disabled'
+    endpoint: 'disabled'
   }
   apim: {
     deployed: deployAPIM
