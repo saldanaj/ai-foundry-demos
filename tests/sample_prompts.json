@@ -1,0 +1,177 @@
+{
+  "safe_prompts": [
+    {
+      "id": 1,
+      "prompt": "What are the latest treatments for type 2 diabetes?",
+      "description": "Safe query with no PII/PHI",
+      "expected_pii": false
+    },
+    {
+      "id": 2,
+      "prompt": "What are the 2025 AHA guidelines for treating cardiac arrest?",
+      "description": "Clinical guidelines query",
+      "expected_pii": false
+    },
+    {
+      "id": 3,
+      "prompt": "Are there any drug interactions between metformin and lisinopril?",
+      "description": "Drug interaction query",
+      "expected_pii": false
+    },
+    {
+      "id": 4,
+      "prompt": "What are the current recommendations for COVID-19 vaccination boosters?",
+      "description": "Vaccination guidelines",
+      "expected_pii": false
+    },
+    {
+      "id": 5,
+      "prompt": "What are the symptoms and treatment options for chronic kidney disease?",
+      "description": "General medical information",
+      "expected_pii": false
+    }
+  ],
+  "prompts_with_pii": [
+    {
+      "id": 101,
+      "prompt": "Patient John Smith has been diagnosed with hypertension. What are the treatment options?",
+      "description": "Contains patient name",
+      "expected_pii": true,
+      "pii_types": ["Person"]
+    },
+    {
+      "id": 102,
+      "prompt": "My patient with MRN 123456 is experiencing chest pain. What should I do?",
+      "description": "Contains medical record number",
+      "expected_pii": true,
+      "pii_types": ["MedicalRecordNumber"]
+    },
+    {
+      "id": 103,
+      "prompt": "Jane Doe, DOB 03/15/1985, is scheduled for surgery. What are the pre-op guidelines?",
+      "description": "Contains name and date of birth",
+      "expected_pii": true,
+      "pii_types": ["Person", "Date"]
+    },
+    {
+      "id": 104,
+      "prompt": "Can you review the case of patient SSN 123-45-6789 with diabetes complications?",
+      "description": "Contains social security number",
+      "expected_pii": true,
+      "pii_types": ["SSN"]
+    },
+    {
+      "id": 105,
+      "prompt": "Patient Robert Johnson, age 65, lives at 123 Main Street, Boston MA. He needs cardiac care recommendations.",
+      "description": "Contains name, age, and address",
+      "expected_pii": true,
+      "pii_types": ["Person", "Age", "Address"]
+    },
+    {
+      "id": 106,
+      "prompt": "My patient with phone number 555-123-4567 called about their medication. What should I tell them?",
+      "description": "Contains phone number",
+      "expected_pii": true,
+      "pii_types": ["PhoneNumber"]
+    },
+    {
+      "id": 107,
+      "prompt": "Email patient sarah.williams@email.com about her lab results showing elevated glucose levels.",
+      "description": "Contains email address",
+      "expected_pii": true,
+      "pii_types": ["Email"]
+    },
+    {
+      "id": 108,
+      "prompt": "Review the chart for Michael Anderson at Boston General Hospital. His condition is worsening.",
+      "description": "Contains patient name and facility",
+      "expected_pii": true,
+      "pii_types": ["Person", "Organization"]
+    }
+  ],
+  "clinical_scenarios": [
+    {
+      "id": 201,
+      "scenario": "Diabetes Management",
+      "prompt": "What are the latest HbA1c targets for managing type 2 diabetes in adults?",
+      "description": "Clinical guideline query",
+      "expected_pii": false
+    },
+    {
+      "id": 202,
+      "scenario": "Cardiac Emergency",
+      "prompt": "What is the updated ACLS protocol for ventricular fibrillation?",
+      "description": "Emergency protocol query",
+      "expected_pii": false
+    },
+    {
+      "id": 203,
+      "scenario": "Medication Safety",
+      "prompt": "What are the contraindications for prescribing warfarin?",
+      "description": "Medication safety query",
+      "expected_pii": false
+    },
+    {
+      "id": 204,
+      "scenario": "Oncology Treatment",
+      "prompt": "What are the current immunotherapy options for stage 3 lung cancer?",
+      "description": "Cancer treatment query",
+      "expected_pii": false
+    },
+    {
+      "id": 205,
+      "scenario": "Infectious Disease",
+      "prompt": "What are the first-line antibiotics for community-acquired pneumonia?",
+      "description": "Antibiotic selection query",
+      "expected_pii": false
+    },
+    {
+      "id": 206,
+      "scenario": "Preventive Care",
+      "prompt": "What are the USPSTF screening recommendations for colorectal cancer?",
+      "description": "Screening guidelines query",
+      "expected_pii": false
+    },
+    {
+      "id": 207,
+      "scenario": "Mental Health",
+      "prompt": "What are the evidence-based treatments for major depressive disorder?",
+      "description": "Mental health treatment query",
+      "expected_pii": false
+    },
+    {
+      "id": 208,
+      "scenario": "Pediatrics",
+      "prompt": "What is the recommended vaccination schedule for infants in 2025?",
+      "description": "Pediatric vaccination query",
+      "expected_pii": false
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": 301,
+      "prompt": "Dr. Smith's patient has diabetes.",
+      "description": "Healthcare provider name (may or may not be detected as PII)",
+      "expected_pii": true,
+      "pii_types": ["Person"]
+    },
+    {
+      "id": 302,
+      "prompt": "The patient at room 404 needs consultation.",
+      "description": "Room number (typically not PII but could be in context)",
+      "expected_pii": false
+    },
+    {
+      "id": 303,
+      "prompt": "What happened on 12/15/2024 in the emergency department?",
+      "description": "Date without patient context",
+      "expected_pii": false
+    },
+    {
+      "id": 304,
+      "prompt": "Patient X has been experiencing symptoms for 3 weeks.",
+      "description": "Anonymized reference",
+      "expected_pii": false
+    }
+  ]
+}

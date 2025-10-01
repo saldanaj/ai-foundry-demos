@@ -1,0 +1,25 @@
+# Azure SDK dependencies
+azure-ai-textanalytics>=5.3.0
+azure-identity>=1.15.0
+azure-ai-projects>=1.0.0b1
+azure.ai.inference>=1.0.0b3
+
+# Streamlit for UI
+streamlit>=1.31.0
+streamlit-extras>=0.3.6
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.6.0
+pydantic-settings>=2.1.0
+
+# Logging and monitoring
+python-json-logger>=2.0.7
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+
+# Optional: APIM integration
+requests>=2.31.0
