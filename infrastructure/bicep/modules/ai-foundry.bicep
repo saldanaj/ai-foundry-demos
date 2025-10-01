@@ -39,7 +39,9 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
     supportsHttpsTrafficOnly: true
     allowBlobPublicAccess: false
   }
-  tags: tags
+  tags: union(tags, {
+    SecurityControl: 'Ignore'
+  })
 }
 
 // Key Vault for AI Foundry
